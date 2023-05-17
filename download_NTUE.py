@@ -3,41 +3,13 @@ import time
 import cv2
 import tesserocr
 import base64
+import os
 from PIL import Image
 from selenium import webdriver
 from fake_useragent import UserAgent
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
-def remakeImg():#影像處理用
-    img = Image.open("input.png")
-    (w, h) = img.size
-
-    new_img = img.resize((int(w*4), int(h*4)))
-    new_img.save("input2.png")
-
-    img = cv2.imread('input2.png',cv2.IMREAD_GRAYSCALE) 
-    _,img_bin= cv2.threshold(img,170,255,cv2.THRESH_BINARY) 
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(7,7))
-    img_dilate = cv2.dilate(img_bin,kernel,iterations=1) 
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(9,9))
-    img_erode = cv2.erode(img_dilate,kernel,iterations=1) 
-    cv2.imwrite("output.png",img_erode )
-
-def imageToText():
-    image = Image.open('output.png')
-    result = tesserocr.image_to_text(image)
-    result = result.replace(" ",'')
-    result = result.replace(".",'')
-    result = result.replace("-",'')
-    result = result.replace("_",'')
-    result = result.replace("O",'0')
-    result = result.replace("D",'0')
-    result = result.replace("B",'8')
-    result = result.replace("b",'6')
-    result = result.replace("l",'1')
-    result = result.replace("i",'1')
-    return result
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
@@ -74,7 +46,6 @@ def download(user_account,user_password):
     if user_account == "" or user_password == "":
         return "none"
     else:
-        correct_password = True
         while True:
             driver = webdriver.Chrome(options=options)
             driver.get("https://nsa.ntue.edu.tw/") # 更改網址以前往不同網頁
@@ -97,12 +68,43 @@ def download(user_account,user_password):
                 cnv.getContext('2d').drawImage(ele, 0, 0);
                 return cnv.toDataURL('image/jpeg').substring(22);    
                 """, driver.find_element(By.ID,"ImgCaptcha"))
-            with open("input.png", 'wb') as image:
+            with open(user_account+"input.png", 'wb') as image:
                 image.write(base64.b64decode(img_base64))
-            remakeImg()
+            
+
+            # 處理影像
+            img = Image.open(user_account+"input.png")
+            (w, h) = img.size
+
+            new_img = img.resize((int(w*4), int(h*4)))
+            new_img.save(user_account+"input.png")
+
+            img = cv2.imread(user_account+'input.png',cv2.IMREAD_GRAYSCALE) 
+            _,img_bin= cv2.threshold(img,170,255,cv2.THRESH_BINARY) 
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(7,7))
+            img_dilate = cv2.dilate(img_bin,kernel,iterations=1) 
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(9,9))
+            img_erode = cv2.erode(img_dilate,kernel,iterations=1) 
+            cv2.imwrite(user_account+"output.png",img_erode )
+
+            #圖片轉文字
+            image = Image.open(user_account+'output.png')
+            result = tesserocr.image_to_text(image)
+            result = result.replace(" ",'')
+            result = result.replace(".",'')
+            result = result.replace("-",'')
+            result = result.replace("_",'')
+            result = result.replace("O",'0')
+            result = result.replace("D",'0')
+            result = result.replace("B",'8')
+            result = result.replace("b",'6')
+            result = result.replace("l",'1')
+            result = result.replace("i",'1')
+            image.close()
+
             # 點擊 captcha
             captcha= driver.find_element(By.XPATH,"/html/body/div[3]/div/div[3]/div[2]/form/div[3]/input")
-            captcha.send_keys(imageToText())
+            captcha.send_keys(result)
             try:
                 text = driver.find_element(By.XPATH,'//*[@id="swal2-content"]')
                 if len(text.text) == 33 or len(text.text) == 10 :
@@ -112,6 +114,7 @@ def download(user_account,user_password):
             except:
                 print("密碼正確")
             time.sleep(1)
+            # hello
             if  driver.current_url== "https://nsa.ntue.edu.tw/home":
                 break
             driver.get("https://nsa.ntue.edu.tw/") 
@@ -120,18 +123,20 @@ def download(user_account,user_password):
         driver.get("https://nsa.ntue.edu.tw/b04/b04250")
 
 
-        # 更改至當學年度
+        # 設定year和semester以更改至當學年度
+        year = "111"
         semester="下學期"
+
         menu = driver.find_element(By.XPATH ,'//*[@id="nav-tabContent"]/div[1]/div[1]/div/div[1]/div[2]/div/button')
         menu.click()
         input_menu= driver.find_element(By.XPATH,'//*[@id="nav-tabContent"]/div[1]/div[1]/div/div[1]/div[2]/div/div/div[1]/input')
-        input_menu.send_keys("111")
+        input_menu.send_keys(year)
         input_menu.send_keys(Keys.ENTER)
         menu2 = driver.find_element(By.XPATH,'//*[@id="nav-tabContent"]/div[1]/div[1]/div/div[2]/div[2]/div/button')
         time.sleep(1)
         menu2.click()
-        if semester == "上學期":
-            input_menu = driver.find_element(By.XPATH,'//*[@id="nav-tabContent"]/div[1]/div[1]/div/div[2]/div[2]/div/div/div[2]/ul/li[1]/a')
+        if semester=="上學期":
+            input_menu= driver.find_element(By.XPATH,'//*[@id="nav-tabContent"]/div[1]/div[1]/div/div[2]/div[2]/div/div/div[2]/ul/li[1]/a')
             input_menu.click()
         else :
             input_menu= driver.find_element(By.XPATH,'//*[@id="nav-tabContent"]/div[1]/div[1]/div/div[2]/div[2]/div/div/div[2]/ul/li[2]/a')
@@ -148,7 +153,7 @@ def download(user_account,user_password):
         st ="big5"
         st2 = "utf-8"
         time.sleep(1)
-        f2 = open("new_json.json", 'w')
+        f2 = open(user_account+".json", 'w')
         f2.write(r'{"'+user_account+'":[')
         for j in range(i):
             a = '//*[@id="row_'+str(j)+'"]/td[4]'
@@ -180,6 +185,17 @@ def download(user_account,user_password):
                 f2.write(b.decode())  # 寫入前再轉回 str
         f2.write(r"]}") 
         f2.close()
-        f3 = open("new_json.json", 'r')
-        aa = f3.read()
-        return aa
+        f3 = open(user_account+".json", 'r')
+        information=f3.read()
+        f3.close()
+
+
+        # 刪除檔案
+        try:
+            os.remove(user_account+".json")
+            os.remove(user_account+"input.png")
+            os.remove(user_account+"output.png")
+        except(FileNotFoundError):
+            print("檔案不存在")
+
+        return information
