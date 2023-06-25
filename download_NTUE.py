@@ -9,7 +9,7 @@ from selenium import webdriver
 from fake_useragent import UserAgent
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-
+import tensorflow
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
@@ -124,8 +124,8 @@ def download(user_account,user_password):
 
 
         # 設定year和semester以更改至當學年度
-        year = "111"
-        semester="下學期"
+        year = "112"
+        semester="上學期"
 
         menu = driver.find_element(By.XPATH ,'//*[@id="nav-tabContent"]/div[1]/div[1]/div/div[1]/div[2]/div/button')
         menu.click()
